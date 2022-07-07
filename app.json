@@ -40,15 +40,13 @@
             "backgroundThrottling": true,
             "minHeight": 445,
             "minWidth": 354,
-            "experimental": {
-                "analytics": true
-            }
+            "contextMenuSettings": {
+                "enable": true,
+                "devtools": true,
+                "reload": true
+              }
         },
         "defaultViewOptions": {
-            "experimental": {
-                "childWindows": true,
-                "analytics": true
-            }
         },
         "commands": [
             {
@@ -65,22 +63,47 @@
                     "content": [
                         {
                             "type": "stack",
-                            "id": "no-drop-target",
+                            "id": "timer-1",
                             "content": [
                                 {
                                     "type": "component",
                                     "componentName": "view",
                                     "componentState": {
+                                        "name": "backgroundThrottling_view",
                                         "processAffinity": "ps_1",
-                                        "url": "https://cdn.openfin.co/health/deployment/index.html"
+                                        "backgroundThrottling": true,
+                                        "url": "http://localhost:5555/timer.html"
                                     }
                                 },
                                 {
                                     "type": "component",
                                     "componentName": "view",
                                     "componentState": {
+                                        "name": "not_backgroundThrottling_view",
                                         "processAffinity": "ps_1",
-                                        "url": "https://google.com"
+                                        "backgroundThrottling": false,
+                                        "url": "http://localhost:5555/timer.html"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Seed Window 2",
+                "layout": {
+                    "content": [
+                        {
+                            "type": "stack",
+                            "id": "no-drop-target",
+                            "content": [
+                                {
+                                    "type": "component",
+                                    "componentName": "view",
+                                    "componentState": {
+                                        "processAffinity": "ps_2",
+                                        "url": "http://localhost:5555/throttleProvider.html"
                                     }
                                 }
                             ]

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Timer Test</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            async function init() {
+                const elem = document.getElementById('finIdentity');
+                elem.innerText = `${JSON.stringify(fin.me.identity)}`;
+
+                channel();
+                websocket();
+                  configTimer();
+//                  broadcastChannel();
+                const bc = broadcastChannelFrame();
+                startFrame(bc);
+
+                setTimeout(async () => {
+                    const w = fin.me.isWindow ? await fin.Window.getCurrent() : await fin.me.getCurrentWindow();
+                    w.hide();
+                }, 3000);
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                init();
+            });
+
+            async function channel() {
+                const client = await fin.InterApplicationBus.Channel.connect('ThrottleChannel', { protocols: ['rtc'] });
+                configTimer();
+                // configTimer((counter) => {
+                //     client.dispatch('updateCounter', { counter });
+                // });
+            }
+
+            function configTimer(callback) {
+                let counter = 0;
+                let lastRun = Date.now();
+                let maxElapse = 0;
+                const elem = document.getElementById('timerField');
+                setInterval(() => {
+                    maxElapse = Math.max(maxElapse, (Date.now() - lastRun));
+                    elem.innerText = `${counter} Max Elapse ${maxElapse}`;
+                    if (callback) {
+                        callback({ counter });
+                    }
+                    lastElapse = Date.now() - lastRun;
+                    lastRun = Date.now();
+                    counter += 1;
+                }, 100);
+            }
+
+            function websocket() {
+                chrome.desktop.getDetails(d => {
+                    const url = `ws://localhost:${d.port}`;
+                    const socket = new WebSocket(url);
+                    socket.addEventListener('open', function (event) {
+                        const elem = document.getElementById('wsField');
+                        elem.innerText = `WS connected: ${url}`;
+                    });
+                    socket.addEventListener('close', function (event) {
+                        const elem = document.getElementById('wsField');
+                        elem.innerText = `WS closed: ${url}`;
+                    });
+                    configTimer();
+                });
+            }
+
+            function broadcastChannel() {
+                const bc = new BroadcastChannel('ThrottleTest');                
+                configTimer((counter) => {
+                    bc.postMessage({ counter });
+                });
+                return bc;
+            }
+
+            function broadcastChannelFrame() {
+                const bc = new BroadcastChannel('ThrottleFrameTest');
+                return bc;
+            }
+
+            let frameCount = 0, lastFrame, lastZeroFrame = -1;
+            let frameChannel;
+            function countFrame() {
+                frameCount++;
+                const next = performance.now();
+                const duration = next - lastFrame;
+                if (duration >= 1000) {
+                    const fps = Math.trunc(1000*( frameCount / duration ));
+                    console.log(Date.now(), 'FPS:', fps);
+                    frameChannel.postMessage({ fps, identity: fin.me.identity, timestamp: performance.now() });
+                    frameCount = 0;
+                    lastFrame = next;
+                    if (fps === 0) {
+                        lastZeroFrame = performance.now();
+                    }
+                }
+                requestAnimationFrame(countFrame)
+            }
+            function startFrame(bc) {
+                frameChannel = bc;
+                frameCount = 0;
+                lastFrame = performance.now();
+                countFrame();
+            }
+
+
+        </script>
+    </head>
+    <body>
+        <div id="finIdentity"></div>
+        <div id="timerField"></div>
+        <div id="wsField"></div>
+        <div id="frameField1"></div>
+        <div id="frameField2"></div>
+    </body>
+
+</html>

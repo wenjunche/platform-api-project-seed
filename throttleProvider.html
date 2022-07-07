@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Throttle Provider</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            async function init() {
+                let counter = 0;
+                let startTime = Date.now();
+                const elem = document.getElementById('timerField');
+                setInterval(() => {
+                    const runInMinutes = Math.round((Date.now() - startTime) / 60000);
+                    elem.innerText = `${counter} running time: ${runInMinutes}`;
+                    counter += 1;
+                }, 100);
+
+                const celem = document.getElementById('counterField');
+                let lastRcvTime = Date.now();
+                const providerChannel = await fin.InterApplicationBus.Channel.create('ThrottleChannel', { protocols: ['rtc'] });
+                providerChannel.onConnection((identity, payload) => {
+                    console.log('channel connect request', identity);
+                    celem.innerText = `Client connection request: ${JSON.stringify(identity)}`;
+                });
+                providerChannel.register('updateCounter', (payload, identity) => {
+                    celem.innerText = `Client counter: ${JSON.stringify(payload)} Elapse ${(Date.now() - lastRcvTime)}`;
+                    lastRcvTime = Date.now();
+                });
+
+                const bc = new BroadcastChannel('ThrottleTest');
+                bc.onmessage = (event) => {
+                    celem.innerText = `Client counter: ${JSON.stringify(event.data)} Elapse ${(Date.now() - lastRcvTime)}`;
+                    lastRcvTime = Date.now();
+                }
+
+                broadcastChannelFrame();
+
+                // const w = await fin.Window.create({ 
+                //                     name: 'throttleWindow', 
+                //                     autoShow: true, 
+                //                     url: 'http://localhost:5555/timer.html',
+                //                     backgroundThrottling: true
+                //                 });
+
+                const app = await fin.Application.create({ 
+                    uuid: 'throttleWindow', 
+                    name: 'throttleWindow', 
+                    autoShow: true, 
+                    url: 'http://localhost:5555/timer.html',
+                    backgroundThrottling: true
+                });
+                app.run();
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                init();
+            });
+
+            function broadcastChannelFrame() {
+                const bc = new BroadcastChannel('ThrottleFrameTest');
+                bc.onmessage = (event) => {
+                    const {fps, identity} = event.data;
+                    console.log(event);
+                    const elem = document.getElementById(identity.name);
+                    if (elem) {
+                        elem.innerText = `${JSON.stringify(event.data)}`;
+                    }
+                }
+                return bc;
+            }
+
+            async function toggle() {
+                const w = fin.Window.wrapSync({uuid: fin.me.identity.uuid ,name: 'Seed Window'});
+                if (await w.isShowing()) {
+                    w.hide();
+                } else {
+                    w.show();
+                }
+                // const w2 = fin.Window.wrapSync({uuid: fin.me.identity.uuid ,name: 'throttleWindow'});
+                // if (await w2.isShowing()) {
+                //     w2.hide();
+                // } else {
+                //     w2.show();
+                // }
+                const app = fin.Window.wrapSync({uuid: 'throttleWindow' ,name: 'throttleWindow'});
+                if (await app.isShowing()) {
+                    app.hide();
+                } else {
+                    app.show();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="timerField"></div>
+        <div id="channelField"></div>
+        <div id="counterField"></div>
+        <div id="backgroundThrottling_view"></div>
+        <div id="not_backgroundThrottling_view"></div>
+        <div>
+            <button onclick="toggle()">toggle the other window</button>
+        </div>
+    </body>
+
+</html>
